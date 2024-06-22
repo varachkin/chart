@@ -13,11 +13,12 @@ import {
     ValueScale,
     Animation,
     EventTracker,
-    HoverState,
     ZoomAndPan,
 } from '@devexpress/dx-react-chart';
 import { connectProps } from '@devexpress/dx-react-core';
 import { format } from 'd3-format';
+import { scaleTime } from 'd3-scale';
+import { timeFormat } from 'd3-time-format';
 import { data } from "./constants";
 
 const transformArray = (inputArray) => {
@@ -30,11 +31,13 @@ const transformArray = (inputArray) => {
     }));
 };
 
+const transformedData = transformArray(data);
+
 const series = [
-    { name: 'Temperature', key: 'temperature', color: '#ff0000', scale: 'temperature' },
-    { name: 'Humidity', key: 'humidity', color: '#0034ff', scale: 'humidity' },
-    { name: 'Setpoint Temperature', key: 'setpoint_temperature', color: '#f7ff00', scale: 'temperature' },
-    { name: 'Setpoint Humidity', key: 'setpoint_humidity', color: '#00fff3', scale: 'humidity' },
+    { name: 'Temperature', key: 'temperature', color: 'rgba(255,0,0,0.56)', scale: 'temperature' },
+    { name: 'Humidity', key: 'humidity', color: 'rgba(0,52,255,0.5)', scale: 'humidity' },
+    { name: 'Setpoint Temperature', key: 'setpoint_temperature', color: 'rgba(247,255,0,0.51)', scale: 'temperature' },
+    { name: 'Setpoint Humidity', key: 'setpoint_humidity', color: 'rgba(0,255,243,0.55)', scale: 'humidity' },
 ];
 
 const makeLabel = (symbol, color) => ({ text, style, ...restProps }) => (
@@ -116,11 +119,12 @@ export default class Demo extends React.PureComponent {
         super(props);
 
         this.state = {
-            data: data,
+            data: transformedData,
             target: null,
+            scale: scaleTime()
         };
 
-        this.changeHover = target => this.setState({
+        this.changeTarget = target => this.setState({
             target: target ? { series: series.name, point: target.point } : null,
         });
 
@@ -129,9 +133,9 @@ export default class Demo extends React.PureComponent {
     }
 
     componentDidUpdate(prevProps, prevState) {
-        // if (getHoverIndex(prevState) !== getHoverIndex(this.state)) {
-        //     this.TooltipContent.update();
-        // }
+        if (getHoverIndex(prevState) !== getHoverIndex(this.state)) {
+            this.TooltipContent.update();
+        }
     }
 
     createComponents() {
@@ -154,7 +158,7 @@ export default class Demo extends React.PureComponent {
                     key={name}
                     name={name}
                     valueField={key}
-                    argumentField="timestamp"
+                    argumentField="time"
                     color={color}
                     scaleName={scale}
                 />
@@ -162,18 +166,33 @@ export default class Demo extends React.PureComponent {
         });
     }
 
+    handleClick = (e) => {
+        const target = e.target.closest('circle');
+        if (target) {
+            const pointIndex = target.getAttribute('index');
+            this.changeTarget({ point: pointIndex });
+        } else {
+            this.changeTarget(null);
+        }
+    }
+
     render() {
         const { data, target } = this.state;
+
+        const tickFormat = timeFormat('%b %d, %Y %H:%M');
 
         return (
             <Paper>
                 <Chart
                     data={data}
+                    onClick={this.handleClick}
                 >
                     <ValueScale name="temperature" />
                     <ValueScale name="humidity" />
 
-                    <ArgumentAxis />
+                    <ArgumentAxis
+                        tickFormat={() => tickFormat}
+                    />
                     <ValueAxis scaleName="temperature" labelComponent={TEMPERATURE_LABEL} />
                     <ValueAxis scaleName="humidity" position="right" labelComponent={HUMIDITY_LABEL} />
 
@@ -190,14 +209,10 @@ export default class Demo extends React.PureComponent {
                     />
                     <EventTracker />
 
-                    <HoverState
-                        hover={target}
-                        onHoverChange={this.changeHover}
+                    <Tooltip
+                        targetItem={target}
+                        contentComponent={this.TooltipContent}
                     />
-                    {/*<Tooltip*/}
-                    {/*    targetItem={target}*/}
-                    {/*    contentComponent={this.TooltipContent}*/}
-                    {/*/>*/}
                     <ZoomAndPan />
                 </Chart>
             </Paper>
