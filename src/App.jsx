@@ -3,13 +3,15 @@ import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
 import Demo from './Demo'
-import { array } from './constants'
+import { data } from './constants'
+import MUIChart from "./MUIChart";
 function App() {
   const [count, setCount] = useState(0)
 
   return (
     <>
-     <Demo arr={array}/>
+     {/*<Demo arr={data}/>*/}
+        <MUIChart />
     </>
   )
 }
