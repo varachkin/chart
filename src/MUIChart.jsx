@@ -1,5 +1,9 @@
 import * as React from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Paper from '@mui/material/Paper';
+import FormGroup from '@mui/material/FormGroup';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Checkbox from '@mui/material/Checkbox';
 import {
     Chart,
     LineSeries,
@@ -15,13 +19,19 @@ import {
     EventTracker,
     ZoomAndPan,
 } from '@devexpress/dx-react-chart';
+import {
+    Crosshair,
+} from 'devextreme-react/chart';
+import Button from 'devextreme-react/button';
+import { createTheme, ThemeProvider, styled } from '@mui/material/styles';
+import Switch from '@mui/material/Switch';
 import { connectProps } from '@devexpress/dx-react-core';
 import { format } from 'd3-format';
 import { scaleTime } from 'd3-scale';
 import { timeFormat } from 'd3-time-format';
-import { data } from "./constants";
 
 const transformArray = (inputArray) => {
+    console.log(inputArray)
     return inputArray.map(obj => ({
         time: new Date(obj.timestamp * 1000),
         humidity: +obj.humidity.toFixed(),
@@ -29,10 +39,12 @@ const transformArray = (inputArray) => {
         setpoint_temperature: +obj.setpoint_temperature.toFixed(),
         setpoint_humidity: +obj.setpoint_humidity.toFixed(),
     }));
+
 };
 
-const transformedData = transformArray(data);
 
+
+const darkTheme = createTheme({ palette: { mode: 'dark' } });
 const series = [
     { name: 'Temperature', key: 'temperature', color: 'rgba(255,0,0,0.56)', scale: 'temperature' },
     { name: 'Humidity', key: 'humidity', color: 'rgba(0,52,255,0.5)', scale: 'humidity' },
@@ -69,7 +81,7 @@ const legendItemStyle = {
     marginRight: '-2px',
 };
 const LegendItem = props => (
-    <Legend.Item {...props} style={legendItemStyle} />
+    <Legend.Item {...props} style={legendItemStyle} onClick={(e) => console.log(props)} />
 );
 
 const legendLabelStyle = {
@@ -80,9 +92,7 @@ const LegendLabel = props => (
 );
 
 const formatTooltip = format('.1f');
-const TooltipContent = ({
-                            data, text, style, ...props
-                        }) => {
+const TooltipContent = React.memo(({ data, text, style, ...props }) => {
     const alignStyle = {
         ...style,
         paddingLeft: '10px',
@@ -110,112 +120,209 @@ const TooltipContent = ({
             {items}
         </table>
     );
-};
+});
 
-const getHoverIndex = ({ target }) => (target ? target.point : -1);
+const Demo = React.memo(({ data }) => {
+    const [target, setTarget] = useState(null);
+    const [showDescription, setShowDescription] = useState(false);
+    const [viewport, setViewport] = useState(null);
+    const chartRef = React.useRef(null);
+    const [zoomPanConfig, setZoomPanConfig] = useState({
+        zoomArgument: true,
+        panArgument: true,
+        zoomValue: false,
+        panValue: false,
+    })
 
-export default class Demo extends React.PureComponent {
-    constructor(props) {
-        super(props);
+    const submit = (e) => setZoomPanConfig(prev => ({ ...prev, [e.target.id]: e.target.checked }));
 
-        this.state = {
-            data: transformedData,
-            target: null,
-            scale: scaleTime()
-        };
-
-        this.changeTarget = target => this.setState({
-            target: target ? { series: series.name, point: target.point } : null,
-        });
-
-        this.createComponents();
-        this.createSeries();
-    }
-
-    componentDidUpdate(prevProps, prevState) {
-        if (getHoverIndex(prevState) !== getHoverIndex(this.state)) {
-            this.TooltipContent.update();
+    const getMode = (zoom, pan) => {
+        if (zoom && pan) {
+            return 'both';
         }
-    }
-
-    createComponents() {
-        const getHoverProps = () => ({
-            hoverIndex: getHoverIndex(this.state),
-        });
-
-        this.TooltipContent = connectProps(TooltipContent, () => {
-            const { data, target } = this.state;
-            return { data: target ? data[target.point] : null };
-        });
-    }
-
-    createSeries() {
-        this.series = series.map(({
-                                      name, key, color, scale,
-                                  }) => {
-            return (
-                <LineSeries
-                    key={name}
-                    name={name}
-                    valueField={key}
-                    argumentField="time"
-                    color={color}
-                    scaleName={scale}
-                />
-            );
-        });
-    }
-
-    handleClick = (e) => {
-        const target = e.target.closest('circle');
-        if (target) {
-            const pointIndex = target.getAttribute('index');
-            this.changeTarget({ point: pointIndex });
-        } else {
-            this.changeTarget(null);
+        if (zoom && !pan) {
+            return 'zoom';
         }
-    }
+        if (!zoom && pan) {
+            return 'pan';
+        }
+        return 'none';
+    };
 
-    render() {
-        const { data, target } = this.state;
-
-        const tickFormat = timeFormat('%b %d, %Y %H:%M');
-
+    const renderInput = (id, label) => {
+        const { [id]: checked } = zoomPanConfig;
         return (
-            <Paper>
-                <Chart
-                    data={data}
-                    onClick={this.handleClick}
-                >
-                    <ValueScale name="temperature" />
-                    <ValueScale name="humidity" />
-
-                    <ArgumentAxis
-                        tickFormat={() => tickFormat}
+            <FormControlLabel
+                control={(
+                    <Checkbox
+                        id={id}
+                        checked={checked}
+                        onChange={submit}
+                        value="checkedB"
+                        color="primary"
                     />
-                    <ValueAxis scaleName="temperature" labelComponent={TEMPERATURE_LABEL} />
-                    <ValueAxis scaleName="humidity" position="right" labelComponent={HUMIDITY_LABEL} />
-
-                    <Title text="Temperature and Humidity Over Time" />
-
-                    {this.series}
-
-                    <Animation />
-                    <Legend
-                        position="bottom"
-                        rootComponent={LegendRoot}
-                        itemComponent={LegendItem}
-                        labelComponent={LegendLabel}
-                    />
-                    <EventTracker />
-
-                    <Tooltip
-                        targetItem={target}
-                        contentComponent={this.TooltipContent}
-                    />
-                    <ZoomAndPan />
-                </Chart>
-            </Paper>
+                )}
+                label={label}
+            />
         );
     }
-}
+    const inputsContainerStyle = { justifyContent: 'center' };
+    const transformedData = transformArray(data);
+
+    const handleShowDescription = () => {
+        setShowDescription(prevState => !prevState);
+    };
+
+    const handleViewportChange = (newViewport) => {
+        setViewport(newViewport);
+    };
+
+    const resetZoom = useCallback(() => {
+        console.log(chartRef.current.instance())
+
+        chartRef.current.instance().resetVisualRange();
+    }, []);
+
+
+    // const TooltipContentConnected = useMemo(() => connectProps(TooltipContent, () => ({
+    //     data: target ? transformedData[target.point] : null,
+    // })), [target]);
+    const handleSizeBasedOnLength = (arr) => {
+        let returnValue;
+        if (arr.length > 999) {
+            returnValue = 250;
+        } else if (arr.length > 499 && arr.length <= 999) {
+            returnValue = 300;
+        } else if (arr.length > 299 && arr.length <= 499) {
+            returnValue = 250;
+        } else if (arr.length > 199 && arr.length <= 299) {
+            returnValue = 225;
+        } else if (arr.length > 99 && arr.length <= 199) {
+            returnValue = 250;
+        } else if (arr.length > 49 && arr.length <= 99) {
+            returnValue = 225;
+        } else if (arr.length > 4 && arr.length <= 49) {
+            returnValue = 225;
+        } else {
+            returnValue = 175;
+        }
+        return returnValue;
+    }
+
+    const labelHalfWidth = handleSizeBasedOnLength(transformedData);
+    let lastLabelCoordinate;
+    const ArgumentLabel = props => {
+        const { x } = props;
+        // filter Labels
+        if (
+            lastLabelCoordinate &&
+            lastLabelCoordinate < x &&
+            x - lastLabelCoordinate <= labelHalfWidth
+        ) {
+            return null;
+        }
+        lastLabelCoordinate = x;
+        return <ArgumentAxis.Label {...props} />;
+    };
+
+    const seriesComponents = useMemo(() => series.map(({ name, key, color, scale }) => (
+        <LineSeries
+            key={name}
+            name={name}
+            valueField={key}
+            argumentField="time"
+            color={color}
+            // scaleName={scale}
+        />
+    )), []);
+
+    const handleClick = useCallback((e) => {
+        const targetElement = e.target.closest('circle');
+        if (targetElement) {
+            const pointIndex = targetElement.getAttribute('index');
+            setTarget({ point: pointIndex });
+        } else {
+            setTarget(null);
+        }
+    }, []);
+
+    // useEffect(() => {
+    //     TooltipContentConnected.update();
+    // }, [target, TooltipContentConnected]);
+
+    const tickFormat = timeFormat('%b %d, %Y %H:%M');
+    console.log(chartRef)
+    return (
+
+        <ThemeProvider theme={darkTheme}>
+            <div
+                className="form-check form-switch"
+                style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'flex-start',
+                    flexDirection: 'row-reverse',
+                    gap: '1rem',
+                    padding: '1rem'
+                }}
+            >
+                <label className="form-check-label ms-2" htmlFor="customSwitch1">Info</label>
+
+                <input
+                    type="checkbox"
+                    className="form-check-input"
+                    id="customSwitch1"
+                    value={showDescription}
+                    onChange={handleShowDescription}
+                />
+                <button id="reset-zoom" text="Reset" onClick={resetZoom}></button>
+            </div>
+            <Chart
+                ref={chartRef}
+                data={transformedData}
+                onClick={handleClick}
+            >
+                <ValueScale name="temperature" />
+                <ValueScale name="humidity" />
+
+                <ArgumentAxis tickFormat={() => tickFormat} labelComponent={ArgumentLabel} />
+                <ValueAxis scaleName="temperature" labelComponent={TEMPERATURE_LABEL} />
+                <ValueAxis scaleName="humidity" position="right" labelComponent={HUMIDITY_LABEL} />
+
+                {seriesComponents}
+
+                <Animation />
+                {showDescription && <Legend
+                    position="bottom"
+                    rootComponent={LegendRoot}
+                    itemComponent={LegendItem}
+                    labelComponent={LegendLabel}
+                />}
+                <FormGroup style={inputsContainerStyle} row>
+                        {renderInput('zoomArgument', 'Zoom argument')}
+                        {renderInput('panArgument', 'Pan argument')}
+                        {renderInput('zoomValue', 'Zoom value')}
+                        {renderInput('panValue', 'Pan value')}
+                    </FormGroup>
+                <EventTracker />
+                {/* <Tooltip
+                    targetItem={target}
+                    contentComponent={TooltipContentConnected}
+                /> */}
+                 <ZoomAndPan
+                        viewport={viewport}
+                        onViewportChange={handleViewportChange}
+                        interactionWithArguments={getMode(zoomPanConfig.zoomArgument, zoomPanConfig.panArgument)}
+                        interactionWithValues={getMode(zoomPanConfig.zoomValue, zoomPanConfig.panValue)}
+                    />
+                <Crosshair enabled={true}>
+                    {/* <Label visible={true} /> */}
+                </Crosshair>
+            </Chart>
+        </ThemeProvider>
+
+    );
+});
+
+export default Demo;

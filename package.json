@@ -16,6 +16,8 @@
     "@devexpress/dx-react-core": "^4.0.8",
     "d3-format": "^3.1.0",
     "d3-scale": "^4.0.2",
+    "devextreme": "24.1.5",
+    "devextreme-react": "24.1.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

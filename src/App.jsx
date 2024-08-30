@@ -1,19 +1,42 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
-import Demo from './Demo'
-import { data } from './constants'
-import MUIChart from "./MUIChart";
+import { useState, useEffect } from 'react';
+import './App.css';
+import MUIChart from './MUIChart';
+import { data as initialData } from './constants';
+import ChartTemp from './Demo';
+import Demo from './Demo';
+import SecondChart from './SecondChart';
+
 function App() {
-  const [count, setCount] = useState(0)
+  const [data, setData] = useState(initialData);
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      const newData = {
+        step: data.length + 1,
+        temperature: +(Math.random() * 10 + 30).toFixed(),
+        humidity: +(Math.random() * 50).toFixed(1),
+        setpoint_temperature: +(Math.random() * 10 + 20).toFixed(),
+        setpoint_humidity: +(Math.random() * 10).toFixed(),
+        time_h: Math.floor(Math.random() * 24),
+        time_m: Math.random() * 60,
+        timestamp: data[data.length - 1].timestamp + 3,
+      };
+
+      setData((prevData) => [...prevData, newData]);
+    }, 3000);
+
+    // Cleanup the interval on component unmount
+    return () => clearInterval(intervalId);
+  }, [data]);
 
   return (
     <>
-     {/*<Demo arr={data}/>*/}
-        <MUIChart />
+      {/* <ChartTemp /> */}
+      <Demo arr={data} />
+      {/* <MUIChart data={data} /> */}
+      {/* <SecondChart /> */}
     </>
-  )
+  );
 }
 
-export default App
+export default App;
