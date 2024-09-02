@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Brush
 } from 'recharts';
@@ -12,18 +12,27 @@ const formatTemperature = (value) => `${value}°`;
 const formatHumidity = (value) => `${value}%`;
 
 const ChartComponent = ({ data }) => {
-  const [zoomDomain, setZoomDomain] = useState({ startIndex: 0, endIndex: data.length - 1 });
+  const [zoomDomain, setZoomDomain] = useState([null, null]);
 
   const handleBrushChange = (newDomain) => {
-    if (newDomain) {
+    if (newDomain && newDomain.length === 2) {
       setZoomDomain(newDomain);
     }
   };
+  console.log(zoomDomain)
+
+  useEffect(()=> {
+    console.log('asfasfasf')
+    setZoomDomain([data[0].timestamp, data[data.length - 1].timestamp])
+  }, [data])
+  // Find the indices based on the selected domain (timestamps)
+  const startIndex = data.findIndex(d => d.timestamp === zoomDomain[0]);
+  const endIndex = data.findIndex(d => d.timestamp === zoomDomain[1]);
 
   return (
-      <ResponsiveContainer width="100%" height={400}>
+      <ResponsiveContainer width="100%" height={600}>
         <LineChart
-            data={data.slice(zoomDomain.startIndex, zoomDomain.endIndex + 1)}
+            data={data.slice(startIndex, endIndex + 1)}
             margin={{ top: 20, right: 50, left: 20, bottom: 20 }}
         >
           <CartesianGrid strokeDasharray="3 3" />
@@ -44,11 +53,11 @@ const ChartComponent = ({ data }) => {
           />
           <Tooltip labelFormatter={formatTimestamp} />
           <Legend />
-          <Line yAxisId="left" type="monotone" dataKey="temperature" stroke="#8884d8" />
-          <Line yAxisId="right" type="monotone" dataKey="humidity" stroke="#82ca9d" />
-          <Line yAxisId="left" type="monotone" dataKey="setpoint_temperature" stroke="#ff7300" />
-          <Line yAxisId="right" type="monotone" dataKey="setpoint_humidity" stroke="#387908" />
-          <Brush dataKey="timestamp" onChange={handleBrushChange} />
+          <Line yAxisId="left" type="monotone" dataKey="temperature" stroke="#8884d8" isAnimationActive={false} dot={false}/>
+          <Line yAxisId="right" type="monotone" dataKey="humidity" stroke="#82ca9d" isAnimationActive={false} dot={false}/>
+          <Line yAxisId="left" type="monotone" dataKey="setpoint_temperature" stroke="#ff7300" isAnimationActive={false} dot={false}/>
+          <Line yAxisId="right" type="monotone" dataKey="setpoint_humidity" stroke="#387908" isAnimationActive={false} dot={false}/>
+          <Brush dataKey="timestamp" onChange={handleBrushChange} baseValue='dataMin'/>
         </LineChart>
       </ResponsiveContainer>
   );
