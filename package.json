@@ -16,10 +16,14 @@
     "@devexpress/dx-react-core": "^4.0.8",
     "d3-format": "^3.1.0",
     "d3-scale": "^4.0.2",
+    "date-fns": "^3.6.0",
+    "dayjs": "^1.11.13",
     "devextreme": "24.1.5",
     "devextreme-react": "24.1.5",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "react-zoom-pan-pinch": "^3.6.1",
+    "recharts": "^2.12.7"
   },
   "devDependencies": {
     "@types/react": "^18.2.66",

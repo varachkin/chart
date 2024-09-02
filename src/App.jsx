@@ -7,7 +7,16 @@ import Demo from './Demo';
 import SecondChart from './SecondChart';
 
 function App() {
-  const [data, setData] = useState(initialData);
+  const [data, setData] = useState([ {
+    "step": 1,
+    "temperature": -100,
+    "humidity": 100,
+    "setpoint_temperature": 30.9,
+    "setpoint_humidity": 10,
+    "time_h": 0,
+    "time_m": 36.9,
+    "timestamp": 1716283671
+  },]);
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -31,10 +40,10 @@ function App() {
 
   return (
     <>
-      {/* <ChartTemp /> */}
+       {/*<ChartTemp />*/}
       <Demo arr={data} />
-      {/* <MUIChart data={data} /> */}
-      {/* <SecondChart /> */}
+       <MUIChart data={data} />
+       {/*<SecondChart data={data}/>*/}
     </>
   );
 }
